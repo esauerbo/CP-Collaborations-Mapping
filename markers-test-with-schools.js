@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      html,
+      body {
+        font-family: Arial, sans-serif;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        bottom:0px;
+        height: 100%;
+        left: 0px;
+        position: absolute;
+        right: 0px;
+      }
+    </style>
+  </head>
+  <body>
+      <div id="map"></div>
+    <script src="schools.js"></script>
+    <script>
+
+      var map;
+      var x;
+
+      function initMap() {
+          // Create a styles array to use with the map.
+          var styles = [
+              {
+                  featureType: 'water',
+                  stylers: [
+                      {color: '#19a0d8'}
+                  ]
+              }, {
+                  featureType: 'administrative',
+                  elementType: 'labels.text.stroke',
+                  stylers: [
+                      {color: '#ffffff'},
+                      {weight: 6}
+                  ]
+              }, {
+                  featureType: 'administrative',
+                  elementType: 'labels.text.fill',
+                  stylers: [
+                      {color: '#e85113'}
+                  ]
+              }, {
+                  featureType: 'road.highway',
+                  elementType: 'geometry.stroke',
+                  stylers: [
+                      {color: '#efe9e4'},
+                      {lightness: -40}
+                  ]
+              }, {
+                  featureType: 'transit.station',
+                  stylers: [
+                      {weight: 9},
+                      {hue: '#e85113'}
+                  ]
+              }, {
+                  featureType: 'road.highway',
+                  elementType: 'labels.icon',
+                  stylers: [
+                      {visibility: 'off'}
+                  ]
+              }, {
+                  featureType: 'water',
+                  elementType: 'labels.text.stroke',
+                  stylers: [
+                      {lightness: 100}
+                  ]
+              }, {
+                  featureType: 'water',
+                  elementType: 'labels.text.fill',
+                  stylers: [
+                      {lightness: -100}
+                  ]
+              }, {
+                  featureType: 'poi',
+                  elementType: 'geometry',
+                  stylers: [
+                      {visibility: 'on'},
+                      {color: '#f0e4d3'}
+                  ]
+              }, {
+                  featureType: 'road.highway',
+                  elementType: 'geometry.fill',
+                  stylers: [
+                      {color: '#efe9e4'},
+                      {lightness: -25}
+                  ]
+              }
+          ];
+
+          map = new google.maps.Map(document.getElementById('map'), {
+              center: {lat: 49.249212, lng: -54.353105},
+              zoom: 3,
+              styles: styles,
+              mapTypeControl: false
+          });
+          for (x in schools) {
+              addMarker(map, schools[x].name);
+          }
+      }
+
+      function addMarker(map, name) {
+          var marker = new google.maps.Marker({
+              position: new google.maps.LatLng(schools[x].coordinates[0], schools[x].coordinates[1]),
+              map: map
+          });
+
+          var infowindow = new google.maps.InfoWindow({
+              content: name
+          });
+
+          google.maps.event.addListener(marker, 'click', function(){
+              infowindow.open(map, marker)
+          });
+      }
+
+    </script>
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?libraries=geometry,drawing&key=AIzaSyC1fm5j1RQqJkszE5Z0KSyACHdX8vsC-mo&v=3&callback=initMap">
+    </script>
+  </body>
+</html>

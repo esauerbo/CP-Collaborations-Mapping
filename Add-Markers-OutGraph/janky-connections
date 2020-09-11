@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      html,
+      body {
+        font-family: Arial, sans-serif;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        bottom:0px;
+        height: 100%;
+        left: 0px;
+        position: absolute;
+        right: 0px;
+      }
+    </style>
+  </head>
+  <body>
+      <div id="map"></div>
+      <script src="outGraph1.js"></script>
+      <script src="edges.js"></script>
+    <script>
+
+      var map;
+      var x;
+      var featureCollection;
+      var markers = [];
+      var edge;
+      var curvature = 0.5;
+
+      function initMap() {
+          // Create a styles array to use with the map.
+          var styles = [
+              {
+                  featureType: 'water',
+                  stylers: [
+                      {color: '#19a0d8'}
+                  ]
+              }, {
+                  featureType: 'administrative',
+                  elementType: 'labels.text.stroke',
+                  stylers: [
+                      {color: '#ffffff'},
+                      {weight: 6}
+                  ]
+              }, {
+                  featureType: 'administrative',
+                  elementType: 'labels.text.fill',
+                  stylers: [
+                      {color: '#e85113'}
+                  ]
+              }, {
+                  featureType: 'road.highway',
+                  elementType: 'geometry.stroke',
+                  stylers: [
+                      {color: '#efe9e4'},
+                      {lightness: -40}
+                  ]
+              }, {
+                  featureType: 'transit.station',
+                  stylers: [
+                      {weight: 9},
+                      {hue: '#e85113'}
+                  ]
+              }, {
+                  featureType: 'road.highway',
+                  elementType: 'labels.icon',
+                  stylers: [
+                      {visibility: 'off'}
+                  ]
+              }, {
+                  featureType: 'water',
+                  elementType: 'labels.text.stroke',
+                  stylers: [
+                      {lightness: 100}
+                  ]
+              }, {
+                  featureType: 'water',
+                  elementType: 'labels.text.fill',
+                  stylers: [
+                      {lightness: -100}
+                  ]
+              }, {
+                  featureType: 'poi',
+                  elementType: 'geometry',
+                  stylers: [
+                      {visibility: 'on'},
+                      {color: '#f0e4d3'}
+                  ]
+              }, {
+                  featureType: 'road.highway',
+                  elementType: 'geometry.fill',
+                  stylers: [
+                      {color: '#efe9e4'},
+                      {lightness: -25}
+                  ]
+              }
+          ];
+
+          // Initialize a new map with styles array
+          map = new google.maps.Map(document.getElementById('map'), {
+              center: {lat: 49.249212, lng: -54.353105},
+              zoom: 3,
+              styles: styles,
+              mapTypeControl: false
+          });
+
+
+          // Traverse the json object of schools and create a marker with each lat and long
+          featureCollection = outGraph1.features;
+          for (x in featureCollection) {
+              var position = {lat:featureCollection[x].geometry.coordinates[0], lng:featureCollection[x].geometry.coordinates[1]};
+              var name = featureCollection[x].properties.personalInfo.attributes.AffName;
+              addMarker(map, name, position, markers);
+          }
+
+          for (edge in edges){
+            var school1 = edges[edge][0];
+            var school2 = edges[edge][1];
+            var marker1 = markers.find(marker => marker.title.trim() === school1);
+            var marker2 = markers.find(marker => marker.title.trim() === school2);
+            connectSchools(map, marker1, marker2);
+          }
+
+      }
+
+
+      // Creates a new marker for each publication object
+      function addMarker(map, name, position, markers) {
+          // Style the markers a bit. This will be our listing marker icon.
+          var defaultIcon = makeMarkerIcon('0091ff');
+          // Create a "highlighted location" marker color for when the user
+          // mouses over the marker.
+          var highlightedIcon = makeMarkerIcon('FFFF24');
+
+          const marker = new google.maps.Marker({
+              position: position,
+              map: map,
+              icon: defaultIcon,
+              title: name,
+              id: markers.length+1
+          });
+          markers.push(marker);
+
+          var infowindow = new google.maps.InfoWindow();
+          // When marker is clicked infowindow pops up
+          google.maps.event.addListener(marker, 'click', function(){
+              populateInfoWindow(map, marker, infowindow)
+          });
+          // Two event listeners - one for mouseover, one for mouseout,
+          // to change the colors back and forth.
+          marker.addListener('mouseover', function() {
+            this.setIcon(highlightedIcon);
+          });
+          marker.addListener('mouseout', function() {
+            this.setIcon(defaultIcon);
+          });
+      }
+      // This function takes in a COLOR, and then creates a new marker
+      // icon of that color. The icon will be 21 px wide by 34 high, have an origin
+      // of 0, 0 and be anchored at 10, 34).
+      function makeMarkerIcon(markerColor) {
+        var markerImage = new google.maps.MarkerImage(
+          'http://chart.googleapis.com/chart?chst=d_map_spin&chld=1.15|0|'+ markerColor +
+          '|40|_|%E2%80%A2',
+          new google.maps.Size(21, 34),
+          new google.maps.Point(0, 0),
+          new google.maps.Point(10, 34),
+          new google.maps.Size(21,34));
+        return markerImage;
+      }
+
+      function populateInfoWindow(map, marker, infowindow) {
+        // Check to make sure the infowindow is not already opened on this marker.
+        if (infowindow.marker != marker) {
+          infowindow.setContent(marker.title);
+          infowindow.marker = marker;
+          // Make sure the marker property is cleared if the infowindow is closed.
+          infowindow.addListener('closeclick', function () {
+            infowindow.marker = null;
+          });
+          infowindow.open(map, marker);
+        }
+      }
+
+      function connectSchools(map, marker1, marker2) {
+        var bounds = new google.maps.LatLngBounds();
+          var pos1 = marker1.position;
+          var pos2 = marker2.position;
+          bounds.extend(pos1);
+          bounds.extend(pos2);
+
+        //  map.fitBounds(bounds);
+          var curveMarker;
+
+          function updateCurveMarker() {
+              var pos1 = marker1.getPosition(), // latlng
+                  pos2 = marker2.getPosition(),
+                  projection = map.getProjection(),
+                  p1 = projection.fromLatLngToPoint(pos1), // xy
+                  p2 = projection.fromLatLngToPoint(pos2);
+              // Calculate the arc.
+              // To simplify the math, these points
+              // are all relative to p1:
+              var e = new google.maps.Point(p2.x - p1.x, p2.y - p1.y), // endpoint (p2 relative to p1)
+                  m = new google.maps.Point(e.x / 2, e.y / 2), // midpoint
+                  o = new google.maps.Point(e.y, -e.x), // orthogonal
+                  c = new google.maps.Point( // curve control point
+                      m.x + curvature * o.x,
+                      m.y + curvature * o.y);
+              var pathDef = 'M 0,0 ' +
+                  'q ' + c.x + ',' + c.y + ' ' + e.x + ',' + e.y;
+
+              var zoom = map.getZoom(),
+                  scale = 1 / (Math.pow(2, -zoom));
+
+              var symbol = {
+                  path: pathDef,
+                  scale: scale,
+                  strokeWeight: 2,
+                  fillColor: 'none'
+              };
+              if (!curveMarker) {
+                  curveMarker = new google.maps.Marker({
+                      position: pos1,
+                      clickable: false,
+                      icon: symbol,
+                      zIndex: 0, // behind the other markers
+                      map: map
+                  });
+              } else {
+                  curveMarker.setOptions({
+                      position: pos1,
+                      icon: symbol,
+                  });
+              }
+          }
+          google.maps.event.addListener(map, 'projection_changed', updateCurveMarker);
+          google.maps.event.addListener(map, 'zoom_changed', updateCurveMarker);
+
+          google.maps.event.addListener(marker1, 'position_changed', updateCurveMarker);
+          google.maps.event.addListener(marker2, 'position_changed', updateCurveMarker);
+      }
+
+    </script>
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?libraries=geometry,drawing&key=AIzaSyC1fm5j1RQqJkszE5Z0KSyACHdX8vsC-mo&v=3&callback=initMap">
+    </script>
+  </body>
+</html>
